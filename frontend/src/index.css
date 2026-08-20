@@ -1,1 +1,121 @@
 @import "tailwindcss";
+
+@theme {
+  --color-bg: #fafafa;
+  --color-surface: #ffffff;
+  --color-surface-sunken: #f4f4f5;
+  --color-border: #e4e4e7;
+  --color-border-strong: #d4d4d8;
+  --color-text: #18181b;
+  --color-text-dim: #71717a;
+  --color-text-faint: #a1a1aa;
+
+  --color-signal: #0891b2;
+  --color-signal-deep: #0e7490;
+  --color-signal-tint: #ecfeff;
+
+  --color-ok: #16a34a;
+  --color-ok-tint: #f0fdf4;
+  --color-warn: #ca8a04;
+  --color-warn-tint: #fefce8;
+  --color-danger: #dc2626;
+  --color-danger-tint: #fef2f2;
+
+  --font-display: "Space Grotesk", "Inter", ui-sans-serif, sans-serif;
+  --font-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "Space Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-bg);
+  background-image: radial-gradient(circle, var(--color-border) 1px, transparent 1px);
+  background-size: 22px 22px;
+  color: var(--color-text);
+}
+
+::selection {
+  background: var(--color-signal);
+  color: white;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.pulse-dot {
+  animation: pulse-dot 1.8s ease-in-out infinite;
+}
+
+@keyframes signal-bar {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+.signal-bar {
+  animation: signal-bar 1.1s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+@keyframes scan-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.scan-line {
+  animation: scan-sweep 2.6s linear infinite;
+}
+
+@keyframes score-land {
+  0% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.score-land {
+  animation: score-land 0.35s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot,
+  .signal-bar,
+  .scan-line,
+  .score-land {
+    animation: none;
+  }
+}

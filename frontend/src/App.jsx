@@ -1,6 +1,7 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext.jsx";
 import { RequireAuth } from "./components/RequireAuth.jsx";
+import { DashboardLayout } from "./components/DashboardLayout.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
 import ProjectsPage from "./pages/ProjectsPage.jsx";
@@ -13,48 +14,23 @@ export default function App() {
   return (
     <AuthProvider>
       <Routes>
+        <Route path="/" element={<Navigate to="/projects" replace />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+
         <Route
-          path="/projects"
           element={
             <RequireAuth>
-              <ProjectsPage />
+              <DashboardLayout />
             </RequireAuth>
           }
-        />
-        <Route
-          path="/projects/:projectId/api-keys"
-          element={
-            <RequireAuth>
-              <ApiKeysPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/projects/:projectId/traces"
-          element={
-            <RequireAuth>
-              <TracesPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/traces/:traceId"
-          element={
-            <RequireAuth>
-              <TraceDetailPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/projects/:projectId/evaluators"
-          element={
-            <RequireAuth>
-              <EvaluatorsPage />
-            </RequireAuth>
-          }
-        />
+        >
+          <Route path="/projects" element={<ProjectsPage />} />
+          <Route path="/projects/:projectId/api-keys" element={<ApiKeysPage />} />
+          <Route path="/projects/:projectId/traces" element={<TracesPage />} />
+          <Route path="/projects/:projectId/evaluators" element={<EvaluatorsPage />} />
+          <Route path="/projects/:projectId/traces/:traceId" element={<TraceDetailPage />} />
+        </Route>
       </Routes>
     </AuthProvider>
   );
