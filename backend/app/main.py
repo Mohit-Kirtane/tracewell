@@ -1,7 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes import api_keys as api_keys_routes
+from app.api.routes import auth as auth_routes
+from app.api.routes import projects as projects_routes
 from app.core.config import get_settings
+from app.ingestion import routes as ingestion_routes
 
 settings = get_settings()
 app = FastAPI(title=settings.app_name)
@@ -18,3 +22,9 @@ app.add_middleware(
 @app.get("/api/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+app.include_router(auth_routes.router, prefix="/api")
+app.include_router(projects_routes.router, prefix="/api")
+app.include_router(api_keys_routes.router, prefix="/api")
+app.include_router(ingestion_routes.router, prefix="/api")
