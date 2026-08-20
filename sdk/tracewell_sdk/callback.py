@@ -42,6 +42,10 @@ class TracewellCallbackHandler(BaseCallbackHandler):
         )
 
     def _record_end(self, run_id: UUID, output_text: str, tokens: int | None = None) -> None:
+        if self.trace_id is None:
+            # No span was ever successfully started for this trace (e.g. the
+            # matching *_start callback failed) - nothing to update.
+            return
         for span in self.spans:
             if span["id"] == str(run_id):
                 span["output"] = output_text
@@ -50,18 +54,34 @@ class TracewellCallbackHandler(BaseCallbackHandler):
                 break
         self.client.update_trace(self.trace_id, spans=self.spans)
 
+    @staticmethod
+    def _serialized_name(serialized: dict | None, default: str) -> str:
+        # LangGraph fires callbacks with serialized=None for some of its
+        # internal orchestration steps (not just real Chains/Runnables).
+        return (serialized or {}).get("name", default)
+
     def on_chain_start(
-        self, serialized: dict, inputs: dict, *, run_id: UUID, parent_run_id: UUID | None = None, **kwargs: Any
+        self, serialized: dict | None, inputs: dict, *, run_id: UUID, parent_run_id: UUID | None = None, **kwargs: Any
     ) -> None:
-        self._record_start(run_id, parent_run_id, "chain", serialized.get("name", "chain"), str(inputs))
+        self._record_start(
+            run_id, parent_run_id, "chain", self._serialized_name(serialized, "chain"), str(inputs)
+        )
 
     def on_chain_end(self, outputs: dict, *, run_id: UUID, **kwargs: Any) -> None:
         self._record_end(run_id, str(outputs))
 
     def on_llm_start(
-        self, serialized: dict, prompts: list[str], *, run_id: UUID, parent_run_id: UUID | None = None, **kwargs: Any
+        self,
+        serialized: dict | None,
+        prompts: list[str],
+        *,
+        run_id: UUID,
+        parent_run_id: UUID | None = None,
+        **kwargs: Any,
     ) -> None:
-        self._record_start(run_id, parent_run_id, "llm", serialized.get("name", "llm"), "\n".join(prompts))
+        self._record_start(
+            run_id, parent_run_id, "llm", self._serialized_name(serialized, "llm"), "\n".join(prompts)
+        )
 
     def on_llm_end(self, response: Any, *, run_id: UUID, **kwargs: Any) -> None:
         text = response.generations[0][0].text if response.generations else ""
@@ -71,9 +91,17 @@ class TracewellCallbackHandler(BaseCallbackHandler):
         self._record_end(run_id, text, tokens=tokens)
 
     def on_tool_start(
-        self, serialized: dict, input_str: str, *, run_id: UUID, parent_run_id: UUID | None = None, **kwargs: Any
+        self,
+        serialized: dict | None,
+        input_str: str,
+        *,
+        run_id: UUID,
+        parent_run_id: UUID | None = None,
+        **kwargs: Any,
     ) -> None:
-        self._record_start(run_id, parent_run_id, "tool", serialized.get("name", "tool"), input_str)
+        self._record_start(
+            run_id, parent_run_id, "tool", self._serialized_name(serialized, "tool"), input_str
+        )
 
     def on_tool_end(self, output: Any, *, run_id: UUID, **kwargs: Any) -> None:
         self._record_end(run_id, str(output))

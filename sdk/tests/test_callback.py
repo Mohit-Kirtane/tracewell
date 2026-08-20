@@ -71,3 +71,35 @@ def test_finish_marks_the_trace_complete():
     handler.finish()
 
     fake_client.update_trace.assert_called_with("trace-abc", status="complete")
+
+
+def test_chain_start_tolerates_serialized_being_none():
+    # LangGraph fires on_chain_start with serialized=None for some of its
+    # own internal orchestration steps, not just real Chains/Runnables.
+    handler, fake_client = _make_handler()
+    run_id = uuid4()
+
+    handler.on_chain_start(None, {"input": "q"}, run_id=run_id)
+
+    assert handler.trace_id == "trace-abc"
+    assert handler.spans[0]["name"] == "chain"
+
+
+def test_llm_start_tolerates_serialized_being_none():
+    handler, _fake_client = _make_handler()
+    run_id = uuid4()
+
+    handler.on_llm_start(None, ["hello"], run_id=run_id)
+
+    assert handler.spans[0]["name"] == "llm"
+
+
+def test_record_end_is_a_noop_if_no_trace_was_ever_started():
+    # If every *_start callback for this run failed before _ensure_trace()
+    # ran, trace_id stays None - _record_end must not call the client with
+    # a None trace id.
+    handler, fake_client = _make_handler()
+
+    handler.on_llm_end(MagicMock(generations=[], llm_output=None), run_id=uuid4())
+
+    fake_client.update_trace.assert_not_called()
