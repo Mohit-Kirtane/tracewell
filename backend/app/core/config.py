@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
 
     worker_poll_interval_seconds: int = 5
+    run_worker_inline: bool = False
 
 
 @lru_cache

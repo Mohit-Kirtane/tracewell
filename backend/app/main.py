@@ -1,4 +1,6 @@
+import asyncio
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,6 +15,7 @@ from app.api.routes import projects as projects_routes
 from app.api.routes import traces_dashboard as traces_dashboard_routes
 from app.core.config import get_settings
 from app.ingestion import routes as ingestion_routes
+from app.worker import run_forever
 
 
 class SPAStaticFiles(StaticFiles):
@@ -28,7 +31,23 @@ class SPAStaticFiles(StaticFiles):
 
 
 settings = get_settings()
-app = FastAPI(title=settings.app_name)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    worker_task = None
+    if settings.run_worker_inline:
+        worker_task = asyncio.create_task(run_forever())
+    yield
+    if worker_task is not None:
+        worker_task.cancel()
+        try:
+            await worker_task
+        except asyncio.CancelledError:
+            pass
+
+
+app = FastAPI(title=settings.app_name, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

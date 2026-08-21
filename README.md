@@ -43,7 +43,8 @@ Dashboard (React)
   -> /api/projects, /api/projects/{id}/traces, /api/traces/{id}, ...
        (user-JWT authenticated, same bcrypt+cookie pattern as Dossier)
 
-Background worker (separate process)
+Scoring loop (in-process asyncio task, or a separate `python -m app.worker`
+process on a paid tier — see `RUN_WORKER_INLINE`)
   -> polls MongoDB for complete traces missing an evaluation
   -> runs the judge LLM against each active evaluator's prompt
   -> writes back a score + reasoning, or "failed" + the real error
@@ -91,7 +92,9 @@ cp ../.env.example .env
 uvicorn app.main:app --reload --port 8000
 ```
 
-Background worker (separate terminal, same `.env`):
+By default the scoring loop does not run alongside the API locally. Either
+set `RUN_WORKER_INLINE=true` in `.env` to run it in-process, or run it as
+a separate terminal (same `.env`):
 
 ```bash
 cd backend
@@ -121,17 +124,23 @@ cd sdk && pytest           # SDK tests, HTTP mocked with httpx.MockTransport
 
 ## Deployment
 
-Single Docker image serves both the API and the built React dashboard
-(same pattern as Dossier), plus a second Render service running the
-background worker from the same image. [`render.yaml`](render.yaml)
-defines both.
+Single Docker image serves the API and the built React dashboard (same
+pattern as Dossier). [`render.yaml`](render.yaml) defines one web
+service, `tracewell-api`.
+
+Render's free tier has no Background Worker service type, so the scoring
+loop that normally runs as a separate process (`python -m app.worker`,
+still available for local dev or a paid-tier deployment) can instead run
+as an `asyncio` task inside the same FastAPI process, gated behind the
+`RUN_WORKER_INLINE` env var. `render.yaml` sets it to `"true"` for the
+free-tier deployment; the app's `lifespan` handler starts the poll loop
+on startup and cancels it on shutdown.
 
 1. Create a free MongoDB Atlas cluster (M0 tier) and copy its connection string.
 2. On Render: **New → Blueprint**, point it at this repo — it provisions
-   both the `tracewell-api` web service and the `tracewell-worker`
-   background worker from `render.yaml`.
-3. Fill in the `sync: false` env vars on both services: `MONGODB_URI`
-   (from Atlas) and `LLM_API_KEY` (from
+   the `tracewell-api` web service from `render.yaml`.
+3. Fill in the `sync: false` env vars: `MONGODB_URI` (from Atlas) and
+   `LLM_API_KEY` (from
    [Google AI Studio](https://aistudio.google.com/apikey)). `JWT_SECRET`
    is auto-generated.
 4. Deploy.

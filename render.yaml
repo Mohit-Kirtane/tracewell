@@ -16,18 +16,5 @@ services:
         generateValue: true
       - key: COOKIE_SECURE
         value: "true"
-
-  - type: worker
-    name: tracewell-worker
-    runtime: docker
-    dockerfilePath: ./Dockerfile
-    dockerCommand: python -m app.worker
-    envVars:
-      - key: MONGODB_URI
-        sync: false
-      - key: MONGODB_DB_NAME
-        value: tracewell
-      - key: LLM_API_KEY
-        sync: false
-      - key: LLM_API_KEY_FALLBACK
-        sync: false
+      - key: RUN_WORKER_INLINE
+        value: "true"
